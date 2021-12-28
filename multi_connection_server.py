@@ -80,7 +80,7 @@ def client_thread(conn, addr):
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
-    s.bind(('localhost', PORT))
+    s.bind((HOST, PORT))
     print(s.getsockname())
 except socket.error as e:
     print(str(e))
