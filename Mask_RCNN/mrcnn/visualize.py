@@ -166,8 +166,8 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     ax.imshow(masked_image.astype(np.uint8))
     if filename:
         plt.savefig(filename, bbox_inches='tight', pad_inches=-0.5, orientation='landscape', dpi=200)
-        img1 = Image.fromarray(masked_image.astype(np.uint8), 'RGB')
-        img1.save('my.png')
+        # img1 = Image.fromarray(masked_image.astype(np.uint8), 'RGB')
+        # img1.save('my.png')
         # img1.show()
     if auto_show and show_img:
         plt.show()

@@ -4,11 +4,12 @@ import os
 from _thread import *
 import mrcnn_inference
 
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect(("8.8.8.8", 80))
-
-HOST = s.getsockname()[0]
 PORT = 65432
+print("Socket connect")
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", PORT))
+HOST = s.getsockname()[0]
+print("Socket connected", HOST)
 s.close()
 
 config = mrcnn_inference.CarPartsConfigSmallest()
@@ -79,7 +80,7 @@ def client_thread(conn, addr):
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
-    s.bind((HOST, PORT))
+    s.bind(('localhost', PORT))
     print(s.getsockname())
 except socket.error as e:
     print(str(e))
