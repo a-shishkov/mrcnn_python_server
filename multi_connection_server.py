@@ -4,16 +4,12 @@ import os
 from _thread import *
 import mrcnn_inference
 
-PORT = 65432
-print("Socket connect")
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect(("8.8.8.8", PORT))
-HOST = s.getsockname()[0]
-print("Socket connected", HOST)
-s.close()
-
-config = mrcnn_inference.CarPartsConfigSmallest()
-model = mrcnn_inference.MRCNN('inference', config)
+def read_message(conn):
+    data = conn.recv(4)
+    if data:
+        msg_len = int.from_bytes(data, "big")
+        print("Message size", msg_len)
+        return conn.recv(msg_len)
 
 
 def send_message(conn, message):
@@ -22,8 +18,11 @@ def send_message(conn, message):
 
 
 def client_thread(conn, addr):
+
     try:
         while True:
+            model_type = read_message(conn)
+            print(model_type)
             data = conn.recv(4)
             if data:
                 msg_len = int.from_bytes(data, "big")
@@ -41,10 +40,17 @@ def client_thread(conn, addr):
                 send_message(conn, json.dumps(
                     {"response": "Downloaded"}).encode('utf-8'))
 
-                results = model.detect(filename)
+                if model_type == b'damage':
+                    results = damage_model.detect(filename)
+                elif model_type == b'parts':
+                    results = car_parts_model.detect(filename)
 
                 filename_out = 'img_{}_out.jpg'.format(''.join(addr[0].split('.')))
-                model.visualize(results, filename_out)
+
+                if model_type == b'damage':
+                    damage_model.visualize(results, filename_out, mrcnn_inference.class_names_car_damage)
+                elif model_type == b'parts':
+                    car_parts_model.visualize(results, filename_out, mrcnn_inference.class_names_car_parts_smallest)
 
                 r = results[0]
                 r.pop('masks')
@@ -78,18 +84,34 @@ def client_thread(conn, addr):
     print('exit', addr)
 
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
-    s.bind((HOST, PORT))
-    print(s.getsockname())
-except socket.error as e:
-    print(str(e))
+    PORT = 65432
+    print("Socket connect")
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", PORT))
+    HOST = s.getsockname()[0]
+    print("Socket connected", HOST)
+    s.close()
 
-print('Waiting for a connection...')
-s.listen()
+    car_parts_config = mrcnn_inference.CarPartsConfigSmallest()
+    car_parts_model = mrcnn_inference.MRCNN('inference', car_parts_config, "Mask_RCNN/models/car_parts_smallest_fixed_anno.h5")
 
-while True:
-    conn, addr = s.accept()
-    print('Connected by', addr)
-    start_new_thread(client_thread, (conn, addr,))
-s.close()
+    damage_config = mrcnn_inference.CarDamageConfig()
+    damage_model = mrcnn_inference.MRCNN('inference', damage_config, "Mask_RCNN/models/car_damage.h5")
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind((HOST, PORT))
+        print(s.getsockname())
+    except socket.error as e:
+        print(str(e))
+
+    print('Waiting for a connection...')
+    s.listen()
+
+    while True:
+        conn, addr = s.accept()
+        print('Connected by', addr)
+        start_new_thread(client_thread, (conn, addr,))
+except KeyboardInterrupt:
+    s.close()

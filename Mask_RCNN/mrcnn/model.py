@@ -1907,7 +1907,7 @@ class MaskRCNN(object):
                     name="input_gt_masks", dtype=bool)
         elif mode == "inference":
             # Anchors in normalized coordinates
-            if config.NAME == "car_part":
+            if config.NAME == "car_part" or config.NAME == "car_damage":
                 input_anchors = KL.Input(shape=[65472, 4], name="input_anchors")
             else:
                 input_anchors = KL.Input(shape=[261888, 4], name="input_anchors")
