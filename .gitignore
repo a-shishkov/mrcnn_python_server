@@ -1,2 +1,4 @@
 /__pycache__
 img_*.jpg
+results
+test_model.ipynb
