@@ -1,9 +1,13 @@
+import mrcnn_inference
+from mrcnn import utils
 import json
 import socket
 import os
 import base64
 from _thread import *
-import mrcnn_inference
+
+# ROOT_DIR = os.path.abspath("./Mask_RCNN/")
+# sys.path.append(ROOT_DIR)  # To find local version of the library
 
 
 def read_message(conn):
@@ -61,7 +65,7 @@ def human_readable_size(size, decimal_places=0):
         if size < 1024.0:
             break
         size /= 1024.0
-    return f"{size:.{decimal_places}f} {unit}"
+    return f'{size:.{decimal_places}f} {unit}'
 
 
 def client_thread(conn, addr):
@@ -104,32 +108,38 @@ def client_thread(conn, addr):
             send_message(conn, json.dumps(
                 {'response': 'Message', 'message': 'Running model'}).encode('utf-8'))
 
-            results = models[client_msg['model']].detect(input_image.path)
+            print(client_msg['type'])
+            if client_msg['type'] == 'raw':
+                r = models[client_msg['model']].raw_detect(
+                    input_image.path)
 
-            if not results[0]['rois'].shape[0]:
-                send_message(conn, json.dumps(
-                    {'response': 'No results'}).encode('utf-8'))
-                print('no results')
-                continue
+            elif client_msg['type'] == 'image':
 
-            output_image = Image(f'{image_id}_out.jpg',
-                                 client_data.dirname_out)
+                results = models[client_msg['model']].detect(input_image.path)
+                if not results[0]['rois'].shape[0]:
+                    send_message(conn, json.dumps(
+                        {'response': 'No results'}).encode('utf-8'))
+                    print('no results')
+                    continue
 
-            models[client_msg['model']].visualize(
-                results, output_image.path, mrcnn_inference.class_names[client_msg['model']])
+                output_image = Image(f'{image_id}_out.jpg',
+                                     client_data.dirname_out)
 
-            r = results[0]
-            r.pop('masks')
-            for key in r:
-                r[key] = r[key].tolist()
+                models[client_msg['model']].visualize(
+                    results, output_image.path, mrcnn_inference.class_names[client_msg['model']])
 
-            print('Out file size', output_image.size())
+                r = results[0]
+                r.pop('masks')
+                for key in r:
+                    r[key] = r[key].tolist()
 
-            with open(output_image.path, 'rb') as image_file:
-                r['image'] = base64.b64encode(
-                    image_file.read()).decode('utf-8')
+                print('Out file size', output_image.size())
 
-            r['response'] = 'Results'
+                with open(output_image.path, 'rb') as image_file:
+                    r['image'] = base64.b64encode(
+                        image_file.read()).decode('utf-8')
+
+            r['response'] = f'Results {client_msg["type"]}'
 
             result = json.dumps(r).encode('utf-8')
 
@@ -137,8 +147,6 @@ def client_thread(conn, addr):
             send_message(conn, json.dumps(
                 {'response': 'Message', 'message': f'Receiving {human_readable_size(len(result))}'}).encode('utf-8'))
 
-            # print('img', list(img))
-            print('Img size', len(json.dumps(r['image']).encode('utf-8')))
             send_message(conn, result)
             print('Sent results')
 
