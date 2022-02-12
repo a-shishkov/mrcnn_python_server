@@ -1,4 +1,5 @@
 /__pycache__
+/.vscode
 img_*.jpg
 results
 test_model.ipynb
