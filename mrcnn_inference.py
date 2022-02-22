@@ -153,8 +153,8 @@ class MRCNN(model.MaskRCNN):
             N = class_ids.shape[0]
 
         return [
-            boxes.tolist(),
-            class_ids.tolist(),
-            scores.tolist(),
-            masks.tolist(),
+            boxes,
+            class_ids,
+            scores,
+            masks,
         ]

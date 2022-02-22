@@ -51,21 +51,19 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
             if not os.path.exists(input_folder):
                 os.makedirs(input_folder)
 
-            image = base64.b64decode(data["image"])
-            with open(input_path, "wb") as input_file:
-                input_file.write(image)
+            image = skimage.io.imread(base64.b64decode(data["image"]), plugin="imageio")
+            skimage.io.imsave(input_path, image)
 
             self.send(
                 json.dumps({"response": "Message", "message": "Running model"}).encode(
                     "utf-8"
                 )
             )
-
-            prediction = models[model].detect(
-                [skimage.io.imread(image, plugin="imageio")]
-            )[0]
+            prediction = models[model].detect([image])[0]
             prediction["response"] = f"Results"
 
+            for key in prediction:
+                prediction[key] = prediction[key].tolist()
             data = json.dumps(prediction).encode("utf-8")
 
             self.send(
