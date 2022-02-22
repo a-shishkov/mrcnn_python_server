@@ -1466,7 +1466,7 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, gt_masks, config):
             gt_h = gt_y2 - gt_y1
             # Resize mini mask to size of GT box
             placeholder[gt_y1:gt_y2, gt_x1:gt_x2] = \
-                np.round(utils.resize(class_mask, (gt_h, gt_w))).astype(bool)
+                np.round(utils.resize(class_mask, (gt_h, gt_w), round=0)).astype(bool)
             # Place the mini batch in the placeholder
             class_mask = placeholder
 
